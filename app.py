@@ -31,12 +31,16 @@ GREY = "#595959"
 
 @st.cache_data(show_spinner=False)
 def load_raw():
-    df = pd.read_parquet(DATA_RAW)
-    for c in ("dispatch_time", "receive_time", "inward_time"):
-        if c in df.columns:
-            df[c] = pd.to_datetime(df[c], errors="coerce")
-    df["month_dt"] = pd.to_datetime(df["month"], errors="coerce")
-    return df
+    # dtypes and the label columns are already correct in the parquet, so this is
+    # just a read. No post-hoc datetime coercion: the timestamp columns the old
+    # version converted here were never used by any chart or table, and they cost
+    # ~190 MB as object columns.
+    return pd.read_parquet(DATA_RAW)
+
+
+def month_label(values):
+    """'2026-05' -> 'May 2026'. Handles the categorical dtype used in the parquet."""
+    return pd.to_datetime(pd.Series(values).astype("string")).dt.strftime("%b %Y")
 
 
 @st.cache_data(show_spinner=False)
@@ -110,7 +114,7 @@ with st.sidebar:
     months = sorted(df_f["month"].dropna().unique())
     sel_months = st.multiselect(
         "Month", months, default=months,
-        format_func=lambda m: pd.to_datetime(m).strftime("%b %Y"),
+        format_func=lambda m: month_label([m])[0],
     )
 
     fc_opts = sorted(df_f["fc"].dropna().astype(str).unique().tolist())
@@ -250,7 +254,7 @@ with tab1:
                 .reset_index()
                 .sort_values("month")
             )
-            m["Month"] = pd.to_datetime(m["month"]).dt.strftime("%b %Y")
+            m["Month"] = month_label(m["month"])
             m["Revenue (₹ Cr)"] = (m["revenue"] / CR).round(2)
             m["Profit (₹ Cr)"] = (m["profit"] / CR).round(2)
             chart = (
@@ -280,7 +284,7 @@ with tab1:
                 on="month", how="left",
             ).fillna({"breach_pos": 0})
             bm["Breach %"] = (bm["breach_pos"] / bm["pos"] * 100).round(2)
-            bm["Month"] = pd.to_datetime(bm["month"]).dt.strftime("%b %Y")
+            bm["Month"] = month_label(bm["month"])
             c2 = (
                 alt.Chart(bm)
                 .mark_line(point=True, color=RED, strokeWidth=3)
