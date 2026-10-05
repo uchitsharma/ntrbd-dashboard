@@ -1,0 +1,14 @@
+# Metabase exports land in the parent folder, but guard just in case
+*.csv
+*.xlsx
+*.xls
+*.pkl
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Streamlit
+.streamlit/secrets.toml
