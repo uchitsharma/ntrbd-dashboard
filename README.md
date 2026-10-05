@@ -32,10 +32,20 @@ streamlit run app.py
    Leave the big CSVs out.
 
 3. Go to <https://share.streamlit.io> → **New app** → pick the repo → deploy.
-   The public URL it gives you (`https://<repo>.streamlit.app`) is the link to send.
+   The public URL it gives you (`https://<subdomain>.streamlit.app`) is the link to send.
 
 Deploy settings: *Main file path* `app.py`, *Python version* 3.12, *Requirements*
 `requirements.txt`.
+
+### Repo already in use
+
+Code is pushed to **`uchitsharma/ntrbd-dashboard`** (branch `main`), and that repo is
+the one to select in the Streamlit deploy dialog. The older
+`uchitsharma/ntrbd-dashboard-revenue` repo is stale (DS-only) and can be deleted.
+
+If deploy reports *branch does not exist* or *main file path does not exist*, the
+wrong repo is selected in the dialog — it lists your repos by name, so confirm it
+says `ntrbd-dashboard`.
 
 ## Refresh the data
 
@@ -53,15 +63,20 @@ prep script recognises, then re-run the prep script and push `data/`:
 python "C:\Users\Administrator\Documents\NTRBD Impact After-Before - FINAL v1\prepare_dashboard_data.py"
 ```
 
-The RS flow is currently absent, so the Flow filter shows only **FC → DS**. It
-activates automatically once the RS exports are dropped in.
+Both flows are loaded, so the Flow filter offers **FC → DS** and **FC → RS**.
+
+The per-SKU summary CSVs are **not** taken from BigQuery Query 2. They are derived
+from the raw exports by `../build_sku_summaries_from_raw.py`, because Query 2
+re-uses every heavy CTE from Query 1 and would cost another ~173 GB scan for a
+result the raw export already contains. Keep the `*_sku_summary.csv` files in the
+parent folder in sync by re-running that script before the prep script.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
 | `app.py` | The dashboard |
-| `data/ntrbd_dashboard.parquet` | PO × SKU × month rows (compressed from ~90 MB CSV to ~2.4 MB) |
+| `data/ntrbd_dashboard.parquet` | PO × SKU × month rows, both flows (941k rows, ~6.3 MB) |
 | `data/ntrbd_sku_summary.parquet` | Per-SKU before/after |
 | `requirements.txt` | Deps for Cloud |
 | `.streamlit/config.toml` | Theme + server settings |
